@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get_navigation/get_navigation.dart';
 
-import 'view/splash_screen.dart';
+import 'services/api/api_service.dart';
+import 'utils/routes.dart';
 
-void main(List<String> args) {
+void main(List<String> args) async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize HTTP service
+  await HttpService.initialize();
+
   runApp(const ContestBell());
 }
 
@@ -12,6 +18,10 @@ class ContestBell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const GetMaterialApp(title: 'Contest Bell', home: SplashScreen());
+    return GetMaterialApp(
+      initialRoute: AppRoutes.splash,
+      getPages: AppRoutes.getPages(),
+      title: 'Contest Bell',
+    );
   }
 }

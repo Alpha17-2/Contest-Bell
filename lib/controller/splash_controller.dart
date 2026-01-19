@@ -1,3 +1,4 @@
+import 'package:contest_bell/utils/routes.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -34,23 +35,14 @@ class SplashController extends GetxController with GetTickerProviderStateMixin {
   }
 
   void startSplashFlow() {
-    // Navigate to main screen after 2 seconds
-    Future.delayed(const Duration(seconds: 2), () {
+    // Navigate to main screen after 1 seconds
+    Future.delayed(const Duration(seconds: 1), () {
       navigateToMainScreen();
     });
   }
 
   void navigateToMainScreen() {
-    // For now, navigate to a placeholder or back to splash
-    // You can replace this with your main screen navigation
-    // Get.offNamed('/main'); // Use this when you have a main screen
-
-    // Placeholder navigation - replace with your actual main screen
-    Get.snackbar(
-      'Navigation',
-      'Splash completed! Add your main screen navigation here.',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    Get.offAllNamed(AppRoutes.home);
   }
 
   @override
