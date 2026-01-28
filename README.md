@@ -4,7 +4,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Android-green)]
 [![License](https://img.shields.io/badge/License-MIT-lightgrey)]
 
-**Codeforces Timer** is an Android application built for competitive programmers to track upcoming contests and set reminders directly in their Google Calendar.  
+**Contest Bell** is an Android application built for competitive programmers to track upcoming contests and set reminders directly in their Google Calendar.  
 The app is lightweight, privacy-focused, and designed to help users never miss a contest.
 
 ---
