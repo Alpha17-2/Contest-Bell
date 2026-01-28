@@ -2,22 +2,37 @@ import 'dart:io';
 import 'package:contest_bell/utils/endpoints.dart';
 import 'package:dio/dio.dart';
 
-/// HTTP Service class that handles all API requests for Codeforces API
+/// HTTP Service class that handles all API requests for multiple services
 class HttpService {
-  static late Dio _dio;
+  static final Map<String, Dio> _dioInstances = {};
+  static bool _isInitialized = false;
 
   // Connection timeout in milliseconds (increased for better reliability)
   static const int connectTimeout = 60000; // 60 seconds
   static const int receiveTimeout = 60000; // 60 seconds
   static const int sendTimeout = 60000; // 60 seconds
 
-  /// Initialize the HTTP service
+  /// Initialize the HTTP service with multiple base URLs
   static Future<void> initialize() async {
-    _dio = Dio();
+    if (_isInitialized) return;
+
+    // Initialize Dio instances for different services
+    await _initializeDioInstance('codeforces', BASEURL_CODEFORCES);
+    await _initializeDioInstance('codechef', BASEURL_CODECHEF);
+
+    _isInitialized = true;
+  }
+
+  /// Initialize a Dio instance for a specific service
+  static Future<void> _initializeDioInstance(
+    String serviceName,
+    String baseUrl,
+  ) async {
+    final dio = Dio();
 
     // Configure Dio options
-    _dio.options = BaseOptions(
-      baseUrl: BASEURL,
+    dio.options = BaseOptions(
+      baseUrl: baseUrl,
       connectTimeout: Duration(milliseconds: connectTimeout),
       receiveTimeout: Duration(milliseconds: receiveTimeout),
       sendTimeout: Duration(milliseconds: sendTimeout),
@@ -27,49 +42,67 @@ class HttpService {
       },
     );
 
-    // Add interceptors for logging
-    _dio.interceptors.add(_createInterceptor());
+    // Add interceptors for logging with service name
+    dio.interceptors.add(_createInterceptor(serviceName));
+
+    _dioInstances[serviceName] = dio;
   }
 
-  /// Create request/response interceptor
-  static Interceptor _createInterceptor() {
+  /// Create request/response interceptor with service identification
+  static Interceptor _createInterceptor(String serviceName) {
     return InterceptorsWrapper(
       onRequest: (options, handler) async {
-        print('🚀 REQUEST: ${options.method} ${options.path}');
-        print('📤 Headers: ${options.headers}');
+        print('🚀 [$serviceName] REQUEST: ${options.method} ${options.path}');
+        print('📤 [$serviceName] Headers: ${options.headers}');
         if (options.data != null) {
-          print('📤 Data: ${options.data}');
+          print('📤 [$serviceName] Data: ${options.data}');
         }
 
         handler.next(options);
       },
       onResponse: (response, handler) {
         print(
-          '✅ RESPONSE: ${response.statusCode} ${response.requestOptions.path}',
+          '✅ [$serviceName] RESPONSE: ${response.statusCode} ${response.requestOptions.path}',
         );
-        print('📥 Data: ${response.data}');
+        print('📥 [$serviceName] Data: ${response.data}');
         handler.next(response);
       },
       onError: (error, handler) {
         print(
-          '❌ ERROR: ${error.response?.statusCode} ${error.requestOptions.path}',
+          '❌ [$serviceName] ERROR: ${error.response?.statusCode} ${error.requestOptions.path}',
         );
-        print('❌ Message: ${error.message}');
+        print('❌ [$serviceName] Message: ${error.message}');
 
         handler.next(error);
       },
     );
   }
 
-  /// GET request
+  /// Get Dio instance for a specific service
+  static Dio _getDioInstance(String serviceName) {
+    if (!_isInitialized) {
+      throw StateError('HttpService must be initialized before use');
+    }
+
+    final dio = _dioInstances[serviceName];
+    if (dio == null) {
+      throw ArgumentError('No Dio instance found for service: $serviceName');
+    }
+
+    return dio;
+  }
+
+  /// GET request with service specification
   static Future<Response> get(
     String endpoint, {
+    String serviceName = 'codeforces',
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
   }) async {
     try {
-      final response = await _dio.get(
+      final dio = _getDioInstance(serviceName);
+      final response = await dio.get(
         endpoint,
         queryParameters: queryParameters,
         options: options,
@@ -81,16 +114,18 @@ class HttpService {
     }
   }
 
-  /// POST request
+  /// POST request with service specification
   static Future<Response> post(
     String endpoint, {
+    String serviceName = 'codeforces',
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
   }) async {
     try {
-      final response = await _dio.post(
+      final dio = _getDioInstance(serviceName);
+      final response = await dio.post(
         endpoint,
         data: data,
         queryParameters: queryParameters,
@@ -103,16 +138,18 @@ class HttpService {
     }
   }
 
-  /// PUT request
+  /// PUT request with service specification
   static Future<Response> put(
     String endpoint, {
+    String serviceName = 'codeforces',
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
   }) async {
     try {
-      final response = await _dio.put(
+      final dio = _getDioInstance(serviceName);
+      final response = await dio.put(
         endpoint,
         data: data,
         queryParameters: queryParameters,
@@ -125,16 +162,18 @@ class HttpService {
     }
   }
 
-  /// PATCH request
+  /// PATCH request with service specification
   static Future<Response> patch(
     String endpoint, {
+    String serviceName = 'codeforces',
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
   }) async {
     try {
-      final response = await _dio.patch(
+      final dio = _getDioInstance(serviceName);
+      final response = await dio.patch(
         endpoint,
         data: data,
         queryParameters: queryParameters,
@@ -147,16 +186,18 @@ class HttpService {
     }
   }
 
-  /// DELETE request
+  /// DELETE request with service specification
   static Future<Response> delete(
     String endpoint, {
+    String serviceName = 'codeforces',
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
   }) async {
     try {
-      final response = await _dio.delete(
+      final dio = _getDioInstance(serviceName);
+      final response = await dio.delete(
         endpoint,
         data: data,
         queryParameters: queryParameters,
@@ -169,23 +210,25 @@ class HttpService {
     }
   }
 
-  /// Upload file
+  /// Upload file with service specification
   static Future<Response> uploadFile(
     String endpoint,
     File file, {
+    String serviceName = 'codeforces',
     String fieldName = 'file',
     Map<String, dynamic>? data,
     ProgressCallback? onSendProgress,
     CancelToken? cancelToken,
   }) async {
     try {
+      final dio = _getDioInstance(serviceName);
       String fileName = file.path.split('/').last;
       FormData formData = FormData.fromMap({
         fieldName: await MultipartFile.fromFile(file.path, filename: fileName),
         ...?data,
       });
 
-      final response = await _dio.post(
+      final response = await dio.post(
         endpoint,
         data: formData,
         onSendProgress: onSendProgress,
@@ -197,16 +240,18 @@ class HttpService {
     }
   }
 
-  /// Upload multiple files
+  /// Upload multiple files with service specification
   static Future<Response> uploadMultipleFiles(
     String endpoint,
     List<File> files, {
+    String serviceName = 'codeforces',
     String fieldName = 'files',
     Map<String, dynamic>? data,
     ProgressCallback? onSendProgress,
     CancelToken? cancelToken,
   }) async {
     try {
+      final dio = _getDioInstance(serviceName);
       Map<String, dynamic> formDataMap = {};
 
       for (int i = 0; i < files.length; i++) {
@@ -223,7 +268,7 @@ class HttpService {
 
       FormData formData = FormData.fromMap(formDataMap);
 
-      final response = await _dio.post(
+      final response = await dio.post(
         endpoint,
         data: formData,
         onSendProgress: onSendProgress,
@@ -235,16 +280,18 @@ class HttpService {
     }
   }
 
-  /// Download file
+  /// Download file with service specification
   static Future<Response> downloadFile(
     String endpoint,
     String savePath, {
+    String serviceName = 'codeforces',
     ProgressCallback? onReceiveProgress,
     Map<String, dynamic>? queryParameters,
     CancelToken? cancelToken,
   }) async {
     try {
-      final response = await _dio.download(
+      final dio = _getDioInstance(serviceName);
+      final response = await dio.download(
         endpoint,
         savePath,
         onReceiveProgress: onReceiveProgress,
@@ -336,8 +383,42 @@ class HttpService {
     }
   }
 
-  /// Get Dio instance for advanced usage
-  static Dio get dio => _dio;
+  /// Get Dio instance for a specific service (advanced usage)
+  static Dio getDio(String serviceName) => _getDioInstance(serviceName);
+
+  /// Get all available service names
+  static List<String> get availableServices => _dioInstances.keys.toList();
+
+  /// Add a new service dynamically
+  static Future<void> addService(
+    String serviceName,
+    String baseUrl, {
+    Map<String, String>? customHeaders,
+  }) async {
+    if (_dioInstances.containsKey(serviceName)) {
+      throw ArgumentError('Service $serviceName already exists');
+    }
+
+    final dio = Dio();
+
+    // Configure Dio options
+    dio.options = BaseOptions(
+      baseUrl: baseUrl,
+      connectTimeout: Duration(milliseconds: connectTimeout),
+      receiveTimeout: Duration(milliseconds: receiveTimeout),
+      sendTimeout: Duration(milliseconds: sendTimeout),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...?customHeaders,
+      },
+    );
+
+    // Add interceptors for logging
+    dio.interceptors.add(_createInterceptor(serviceName));
+
+    _dioInstances[serviceName] = dio;
+  }
 }
 
 /// Custom HTTP Exception

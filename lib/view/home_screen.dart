@@ -1,4 +1,5 @@
 import 'package:contest_bell/controller/home_controller.dart';
+import 'package:contest_bell/models/contest.dart';
 import 'package:contest_bell/utils/constants.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
@@ -28,7 +29,7 @@ class HomeScreen extends GetView<HomeController> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Codeforces Contests',
+                      'Contest Bell',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -37,7 +38,7 @@ class HomeScreen extends GetView<HomeController> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${homeController.contests.length} upcoming',
+                      '${homeController.allContests.length} upcoming contests',
                       style: const TextStyle(
                         fontSize: 16,
                         color: Constants.lightIconColor,
@@ -61,7 +62,7 @@ class HomeScreen extends GetView<HomeController> {
                     );
                   }
 
-                  if (homeController.contests.isEmpty) {
+                  if (homeController.allContests.isEmpty) {
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -94,9 +95,9 @@ class HomeScreen extends GetView<HomeController> {
                   }
 
                   return ListView.builder(
-                    itemCount: homeController.contests.length,
+                    itemCount: homeController.allContests.length,
                     itemBuilder: (context, index) {
-                      final contest = homeController.contests[index];
+                      final contest = homeController.allContests[index];
                       return ContestCard(
                         contest: contest,
                         controller: homeController,
@@ -114,7 +115,7 @@ class HomeScreen extends GetView<HomeController> {
 }
 
 class ContestCard extends StatelessWidget {
-  final contest;
+  final Contest contest;
   final HomeController controller;
 
   const ContestCard({
@@ -164,24 +165,34 @@ class ContestCard extends StatelessWidget {
                           color: Constants.textColor,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: controller.getContestTypeColor(contest),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          controller.getContestTypeText(contest),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white,
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Image.asset(contest.platform == 'Codeforces'
+                              ? 'assets/codeforces_logo.png'
+                              : 'assets/codechef_logo.png',
+                              height: 25,
+                              fit: BoxFit.fitHeight,),
+                          const SizedBox(width: 8),
+                          if (contest.platform == 'Codeforces') Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: controller.getContestTypeColor(contest),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              controller.getContestTypeText(contest),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ],
                   ),

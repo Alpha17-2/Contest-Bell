@@ -1,49 +1,98 @@
+import 'package:contest_bell/models/codechef_contest.dart';
+import 'package:contest_bell/models/codeforces_contest.dart' as cdfc;
+import 'package:contest_bell/models/contest.dart';
+import 'package:contest_bell/services/codechef_contest_service.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:add_2_calendar/add_2_calendar.dart';
-
-import '../models/contest.dart';
 import '../services/codeforces_contest_service.dart';
 
 class HomeController extends GetxController {
-  var contests = <Result>[].obs;
+  var codeforcesContests = <cdfc.CodeforcesContest>[].obs;
+  var codechefContests = <CodechefContest>[].obs;
+  var allContests = <Contest>[].obs;
   RxBool isLoading = false.obs;
   CodeforcesContestService codeforcesContestService =
       CodeforcesContestService();
+  CodechefContestService codechefContestService =
+      CodechefContestService();
 
   @override
-  void onInit() {
+  void onInit() async {
     super.onInit();
-    getContests();
-  }
-
-  void getContests() async {
     isLoading.value = true;
     try {
-      final allContests = await codeforcesContestService.getAllContests();
-      // Filter only upcoming contests (phase == BEFORE)
-      final upcomingContests = allContests
-          .where((contest) => contest.result != null)
-          .expand((contest) => contest.result!)
-          .where((result) => result.phase == Phase.BEFORE)
-          .toList();
-
-      // Sort by start time
-      upcomingContests.sort(
-        (a, b) => (a.startTimeSeconds ?? 0).compareTo(b.startTimeSeconds ?? 0),
-      );
-
-      contests.value = upcomingContests;
-    } catch (e) {
-      print('Error fetching contests: $e');
-      contests.value = [];
+      await getCodeforcesContest();
+      await getCodechefContest();
+      combineContests();
     } finally {
       isLoading.value = false;
     }
   }
 
+  void combineContests() {
+    // Clear existing contests to avoid duplicates
+    allContests.clear();
+    
+    // Add Codeforces contests
+    for (var codeforcesContest in codeforcesContests) {
+      final Contest contest = Contest(
+        id: codeforcesContest.id,
+        name: codeforcesContest.name,
+        startTimeSeconds: codeforcesContest.startTimeSeconds,
+        durationSeconds: codeforcesContest.durationSeconds,
+        platform: 'Codeforces',
+      );
+      allContests.add(contest);
+    }
+    
+    // Add CodeChef contests
+    for (var codechefContest in codechefContests) {
+      //Convert ISO date → epoch seconds (UTC)
+      final DateTime startDate =
+          DateTime.parse(codechefContest.contestStartDateIso!);
+
+      final int startTimeSeconds =
+          startDate.toUtc().millisecondsSinceEpoch ~/ 1000;
+
+      //Convert duration (minutes → seconds)
+      final int durationSeconds =
+          int.parse(codechefContest.contestDuration!) * 60;
+
+      //Create normalized Contest (Codeforces-style)
+      final Contest contest = Contest(
+        id: codechefContest.contestCode, 
+        name: codechefContest.contestName,
+        startTimeSeconds: startTimeSeconds,
+        durationSeconds: durationSeconds,
+        platform: 'Codechef',
+      );
+      allContests.add(contest);
+    }
+    
+    // Sort the combined contests by start time (earliest first)
+    allContests.sort(
+      (a, b) => (a.startTimeSeconds ?? 0)
+          .compareTo(b.startTimeSeconds ?? 0),
+    );
+  }
+
+  Future<void> getCodechefContest() async {
+    final contests = await codechefContestService.getAllUpcomingCodechefContests();
+    codechefContests.value = contests;
+  }
+
+  Future<void> getCodeforcesContest() async {
+    final contests = await codeforcesContestService.getAllCodeforcesContests();
+    // Filter only upcoming contests (phase == BEFORE)
+    final upcomingContests = contests
+        .where((contest) => contest.phase == cdfc.Phase.BEFORE)
+        .toList();
+    codeforcesContests.value = upcomingContests;
+  }
+
   // Helper method to get contest type display text
-  String getContestTypeText(Result contest) {
+  String getContestTypeText(Contest contest) {
     if (contest.name?.toLowerCase().contains('educational') == true) {
       return 'Educational';
     }
@@ -63,12 +112,11 @@ class HomeController extends GetxController {
     if (contest.name?.toLowerCase().contains('div. 4') == true) {
       return 'Div. 4';
     }
-
-    return 'Contest';
+    return 'Codechef';
   }
 
   // Helper method to get contest type color
-  Color getContestTypeColor(Result contest) {
+  Color getContestTypeColor(Contest contest) {
     final typeText = getContestTypeText(contest);
 
     switch (typeText) {
@@ -88,7 +136,7 @@ class HomeController extends GetxController {
   }
 
   // Method to add contest to Google Calendar
-  Future<void> addToCalendar(Result contest) async {
+  Future<void> addToCalendar(Contest contest) async {
     try {
       final startTime = DateTime.fromMillisecondsSinceEpoch(
         (contest.startTimeSeconds ?? 0) * 1000,
@@ -98,12 +146,10 @@ class HomeController extends GetxController {
 
       final Event event = Event(
         title: contest.name ?? 'Codeforces Contest',
-        description:
-            'Codeforces ${getContestTypeText(contest)}\n'
-            'Contest ID: ${contest.id}\n'
-            'Duration: ${formatDuration(duration)}\n'
-            'Join the contest at: https://codeforces.com/contest/${contest.id}',
-        location: 'https://codeforces.com/contest/${contest.id}',
+        description: 'Coding Contest',
+        location: contest.platform == 'Codeforces'
+            ? 'https://codeforces.com/contest/${contest.id}'
+            : 'https://codechef.com/${contest.id}',
         startDate: startTime,
         endDate: endTime,
         iosParams: const IOSParams(reminder: Duration(minutes: 15)),
