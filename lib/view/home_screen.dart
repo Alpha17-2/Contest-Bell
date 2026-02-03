@@ -168,13 +168,15 @@ class ContestCard extends StatelessWidget {
                       const SizedBox(height: 10),
                       Row(
                         children: [
-                          Image.asset(contest.platform == 'Codeforces'
-                              ? 'assets/codeforces_logo.png'
-                              : 'assets/codechef_logo.png',
-                              height: 25,
-                              fit: BoxFit.fitHeight,),
+                          Image.asset(
+                            contest.platform == 'Codeforces'
+                                ? 'assets/codeforces_logo.png'
+                                : 'assets/codechef_logo.png',
+                            height: 25,
+                            fit: BoxFit.fitHeight,
+                          ),
                           const SizedBox(width: 8),
-                          if (contest.platform == 'Codeforces') Container(
+                          if (contest.platform == 'Codeforces' && controller.getContestTypeText(contest) != null) Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
                               vertical: 4,
@@ -184,7 +186,7 @@ class ContestCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              controller.getContestTypeText(contest),
+                              controller.getContestTypeText(contest)!,
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,

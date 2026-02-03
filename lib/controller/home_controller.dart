@@ -92,7 +92,7 @@ class HomeController extends GetxController {
   }
 
   // Helper method to get contest type display text
-  String getContestTypeText(Contest contest) {
+  String? getContestTypeText(Contest contest) {
     if (contest.name?.toLowerCase().contains('educational') == true) {
       return 'Educational';
     }
@@ -112,7 +112,7 @@ class HomeController extends GetxController {
     if (contest.name?.toLowerCase().contains('div. 4') == true) {
       return 'Div. 4';
     }
-    return 'Codechef';
+    return null;
   }
 
   // Helper method to get contest type color
